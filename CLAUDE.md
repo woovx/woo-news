@@ -58,6 +58,7 @@
 - 토큰·비밀번호는 사용자가 직접 발급하고 직접 GitHub에 넣는다. Claude는 값을 받거나 입력하지 않는다.
 - 로컬 PC 시험: `npm install` 후 PowerShell에서 `$env:PW_CHANNEL='chrome'; node scripts/render.mjs 2026-10-21`. (이 PC에서는 Playwright 내장 Chromium이 실행되지 않아 설치된 Chrome을 쓴다.)
 - 07:00 생성 예약 작업: 이름 "WOO News 주식/코인 생성", ID `trig_01NcTiEaDAbDbAqv7iDcgftV`, cron `0 22 * * 0-5`(UTC), 모델 claude-sonnet-5-5, 환경 Default, 저장소 woovx/woo-news, 커넥터 없음. 관리: https://claude.ai/code/routines/trig_01NcTiEaDAbDbAqv7iDcgftV . 실행 시각은 서버 사정으로 몇 분(예: 07:08) 늦게 잡힐 수 있다. 예약 작업 메시지는 `docs/daily-task-prompt.md`를 읽고 따르게 되어 있으므로, 규칙은 그 파일을 고쳐 바꾼다.
+- 07:35 점검·복구 예약 작업: 이름 "WOO News 점검·복구", ID `trig_012CN6QRcqVWBuwZB6KodhfS`, cron `35 22 * * 0-5`(UTC), 같은 모델·환경·저장소, 커넥터 없음. 관리: https://claude.ai/code/routines/trig_012CN6QRcqVWBuwZB6KodhfS
 - Claude GitHub 앱은 woovx 계정에 woo-news 저장소만 허용해 설치했다(2026-10-21).
 - 기존 08:45 4분야 예약 작업은 2026-10-21에 중지했다(삭제 안 함).
 
