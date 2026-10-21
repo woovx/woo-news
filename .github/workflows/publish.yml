@@ -1,0 +1,70 @@
+# 매주 월~토 08:00(KST) 무렵 오늘 카드를 쓰레드·인스타그램에 올린다.
+# 저장소 변수 POST_MODE 가 live 일 때만 실제로 올리고, 그 밖에는 시험(토큰·이미지 주소 확인)만 한다.
+name: 게시
+
+on:
+  schedule:
+    - cron: '55 22 * * 0-5'   # UTC 일~금 22:55 = KST 월~토 07:55
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '게시할 날짜 (YYYY-MM-DD, 비우면 오늘)'
+        required: false
+      mode:
+        description: 'dry-run 은 시험, live 는 실제 게시'
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      POST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || vars.POST_MODE }}
+      POST_DATE: ${{ inputs.date }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 날짜 정하기
+        run: echo "POST_DATE=${POST_DATE:-$(TZ=Asia/Seoul date +%F)}" >> "$GITHUB_ENV"
+
+      # 생성·렌더링이 늦어질 때를 대비해 card.jpg(또는 skip)가 생길 때까지 최대 40분 기다린다.
+      - name: 카드 기다리기
+        run: |
+          for i in $(seq 1 40); do
+            git pull --quiet --rebase
+            if [ -f "posts/$POST_DATE/skip" ] || [ -f "posts/$POST_DATE/card.jpg" ]; then exit 0; fi
+            echo "아직 카드 없음 ($i/40)"; sleep 60
+          done
+          echo "posts/$POST_DATE/card.jpg 가 40분 안에 생기지 않음"
+
+      - name: 게시
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IMAGE_BASE_URL: ${{ vars.IMAGE_BASE_URL }}
+        run: node scripts/publish.mjs "$POST_DATE"
+
+      - name: 게시 기록 커밋
+        if: always()
+        run: |
+          f="posts/$POST_DATE/published.json"
+          [ -f "$f" ] || exit 0
+          git config user.name "woo-news-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$f"
+          git diff --cached --quiet && exit 0
+          git commit -m "게시 기록: $POST_DATE"
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done
+          exit 1

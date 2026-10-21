@@ -1,0 +1,36 @@
+# 매주 월요일 03:00(KST)에 쓰레드·인스타 장기 토큰을 갱신해 GitHub Secrets를 덮어쓴다.
+# 저장소 Secret SECRETS_PAT(이 저장소 Secrets 읽기·쓰기 권한의 fine-grained 토큰)이 필요하다.
+name: 토큰 갱신
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'   # UTC 일 18:00 = KST 월 03:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 토큰 갱신
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/tokens"
+          node scripts/refresh-tokens.mjs "$RUNNER_TEMP/tokens"
+      - name: Secrets 덮어쓰기
+        env:
+          GH_TOKEN: ${{ secrets.SECRETS_PAT }}
+        run: |
+          for name in THREADS_TOKEN IG_TOKEN; do
+            gh secret set "$name" --repo "$GITHUB_REPOSITORY" < "$RUNNER_TEMP/tokens/$name"
+          done
+          rm -rf "$RUNNER_TEMP/tokens"

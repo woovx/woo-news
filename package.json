@@ -1,0 +1,14 @@
+{
+  "name": "woo-news",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "render": "node scripts/render.mjs",
+    "publish-post": "node scripts/publish.mjs",
+    "refresh-tokens": "node scripts/refresh-tokens.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.48.2"
+  }
+}

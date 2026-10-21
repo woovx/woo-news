@@ -1,0 +1,64 @@
+# post.json 이 푸시되면 카드 JPEG를 만들어 같은 폴더에 커밋한다.
+name: 카드 렌더링
+
+on:
+  push:
+    branches: [main]
+    paths: ['posts/*/post.json']
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '다시 만들 날짜 (YYYY-MM-DD)'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-write
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: 렌더링할 날짜 찾기
+        id: dates
+        env:
+          INPUT_DATE: ${{ inputs.date }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$INPUT_DATE" ]; then
+            dates="$INPUT_DATE"
+          else
+            dates=$(git diff --name-only "$BEFORE" HEAD -- 'posts/*/post.json' 2>/dev/null | cut -d/ -f2 | sort -u | tr '\n' ' ')
+            [ -z "$dates" ] && dates=$(git show --name-only --format= HEAD -- 'posts/*/post.json' | cut -d/ -f2 | sort -u | tr '\n' ' ')
+          fi
+          echo "dates=$dates" >> "$GITHUB_OUTPUT"
+          echo "렌더링: $dates"
+
+      - name: 렌더링
+        if: steps.dates.outputs.dates != ''
+        run: node scripts/render.mjs ${{ steps.dates.outputs.dates }}
+
+      - name: 커밋
+        if: steps.dates.outputs.dates != ''
+        run: |
+          git config user.name "woo-news-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add posts/*/card.html posts/*/card.jpg
+          git diff --cached --quiet && exit 0
+          git commit -m "카드 렌더링: ${{ steps.dates.outputs.dates }}"
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done
+          exit 1
