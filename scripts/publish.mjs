@@ -7,7 +7,7 @@
 //   IG_TOKEN       인스타그램 장기 토큰 (GitHub Secrets)
 //   PLATFORMS      올릴 곳. 기본 "threads,instagram"
 //   IMAGE_BASE_URL 이미지 공개 주소 앞부분. 기본 https://raw.githubusercontent.com/<저장소>/main
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { loadPost, postDir, todayKst, validatePost } from './validate.mjs';
 
@@ -20,8 +20,14 @@ const platforms = (process.env.PLATFORMS || 'threads,instagram').split(',').map(
 const dir = postDir(date);
 const resultPath = path.join(dir, 'published.json');
 
+// 결과를 로그와 Actions 실행 요약(Summary) 화면에 같이 남긴다.
+function report(line, isError = false) {
+  (isError ? console.error : console.log)(line);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `- ${line}\n`);
+}
+
 function fail(msg) {
-  console.error(`[${date}] 게시 실패: ${msg}`);
+  report(`[${date}] 게시 실패: ${msg}`, true);
   process.exit(1);
 }
 
@@ -83,7 +89,7 @@ const platformsApi = {
 
 // ---- 게시 전 확인 ----
 if (existsSync(path.join(dir, 'skip'))) {
-  console.log(`[${date}] skip 파일이 있어 게시하지 않음: ${readFileSync(path.join(dir, 'skip'), 'utf8').trim()}`);
+  report(`[${date}] skip 파일이 있어 게시하지 않음: ${readFileSync(path.join(dir, 'skip'), 'utf8').trim()}`);
   // 시험 모드에서는 skip 날짜로도 토큰·이미지 주소 확인은 해 본다.
   if (live) process.exit(0);
   console.log('[시험] 토큰과 이미지 주소 확인은 계속 진행');
@@ -113,20 +119,20 @@ for (const name of platforms) {
     if (!token) throw new Error('토큰이 없음 (GitHub Secrets 확인)');
     const user = await api.whoami(token);
     if (done[name]) {
-      console.log(`${name}: 이미 게시됨 (${done[name].id}), 건너뜀`);
+      report(`${name}: 이미 게시됨 (${done[name].id}), 건너뜀`);
       continue;
     }
     if (!live) {
-      console.log(`${name}: [시험] @${user} 계정 토큰 확인. 실제 게시는 하지 않음`);
+      report(`${name}: [시험] @${user} 계정 토큰 확인. 실제 게시는 하지 않음`);
       continue;
     }
     const id = await api.post(token, imageUrl, texts[name]);
     done[name] = { id, user, at: new Date().toISOString() };
     writeFileSync(resultPath, JSON.stringify(done, null, 2) + '\n');
-    console.log(`${name}: @${user} 게시 완료 (${id})`);
+    report(`${name}: @${user} 게시 완료 (${id})`);
   } catch (e) {
     failed = true;
-    console.error(`${name}: 실패 - ${e.message}`);
+    report(`${name}: 실패 - ${e.message}`, true);
   }
 }
 if (failed) process.exit(1);
