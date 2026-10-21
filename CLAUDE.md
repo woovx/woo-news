@@ -46,6 +46,7 @@
 |---|---|---|
 | 월~토 07:00 | Claude 클라우드 예약 작업 "WOO News 주식/코인 생성" | 당일 기사 검색 → `posts/YYYY-MM-DD/post.json`(카드 글 + 쓰레드·인스타 본문 + 근거 기사) 작성 → `scripts/validate.mjs` 통과 → main에 푸시. 프롬프트 전문: `docs/daily-task-prompt.md` |
 | 푸시 직후 | Actions "카드 렌더링" (`.github/workflows/render.yml`) | `scripts/render.mjs`가 확정 폼(`scripts/card-template.mjs`, `cards/Main.dc.html`과 같은 구조)으로 `card.html`·`card.jpg`(1080×1350 JPEG)를 만들고 커밋. 글이 줄 수를 넘치면 실패한다 |
+| 월~토 07:35 | Claude 클라우드 예약 작업 "WOO News 점검·복구" | 오늘 카드가 정상인지 보고, post.json 없음·검사 실패·렌더링 실패(글 넘침)·기사 부족 `[자동]` skip이면 고쳐서 main에 푸시. 정상이면 아무것도 안 함. 절차: `docs/repair-task-prompt.md` |
 | 월~토 07:55 무렵 | Actions "게시" (`.github/workflows/publish.yml`, cron `55 22 * * 0-5` UTC) | `scripts/publish.mjs`가 card.jpg를 공개 주소(raw.githubusercontent.com)로 넘겨 쓰레드·인스타에 컨테이너 생성 → 게시. card.jpg가 아직 없으면 최대 40분 기다린다. 결과는 `published.json`에 커밋 |
 | 매주 월 03:00 | Actions "토큰 갱신" (`.github/workflows/refresh-tokens.yml`) | `scripts/refresh-tokens.mjs`로 두 장기 토큰을 갱신하고 Secrets를 덮어쓴다 |
 
@@ -65,6 +66,11 @@
 - **내용 고치기**: 08:00 전에 `post.json`을 GitHub에서 고쳐 커밋하면 카드가 다시 렌더링된다.
 - **시험 / 실제 전환**: 저장소 Settings → Secrets and variables → Actions → Variables에서 `POST_MODE`를 `live`로 두면 실제 게시, `dry-run`이면 시험(토큰이 어느 계정인지와 이미지 주소만 확인), 변수를 지우면 예약 게시가 아예 돌지 않는다(일시 중지). 2026-10-21 사용자 결정: 10/22부터 `live`, 게시 전 승인 없이 자동 게시하고 검수는 사용자가 나중에 직접 한다.
 - **손으로 다시 게시**: Actions → "게시" → Run workflow(날짜, mode). 이미 올라간 플랫폼은 `published.json`을 보고 건너뛰므로 두 번 올라가지 않는다.
+- **자동 복구 (2026-10-21 사용자 요청: 게시는 무조건 되게)**:
+  - 07:35 점검·복구 작업이 생성·렌더링 문제를 고친다.
+  - 게시 스크립트는 Meta 일시 오류면 다시 시도하고, 게시 실패 시 1분 뒤 실제로 올라갔는지 확인한 뒤 한 번 더 시도한다.
+  - 게시 예비 실행 08:40·09:40(KST)이 아직 안 올라간 플랫폼만 다시 올린다. 같은 첫 줄의 글이 최근 20시간 안에 있으면 다시 올리지 않는다(중복 방지).
+  - 자동으로 못 고치는 것: 토큰 만료·폐기, 계정 제한, 저장소 비공개 전환, 당일 기사가 정말 부족한 날.
 - **실패하면**: GitHub가 계정 메일로 실패 알림을 보낸다. Actions 로그에서 원인을 본다.
   - "post.json 없음": 07시 생성 작업 실패 → claude.ai/code 예약 작업 실행 기록 확인. 급하면 그날은 건너뛴다.
   - "글이 넘침": `post.json` 글을 줄여 커밋 → 렌더링 → "게시"를 손으로 실행.
