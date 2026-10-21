@@ -52,7 +52,8 @@
 - 폴더 구조: `posts/YYYY-MM-DD/` 안에 `post.json`, `card.html`, `card.jpg`, (있으면) `skip`, `published.json`.
 - 글꼴: `fonts/NotoSansKR-wght.ttf`(Google Fonts, OFL)를 저장소에 넣어 매번 같은 모양으로 렌더링한다.
 - GitHub Secrets: `THREADS_TOKEN`, `IG_TOKEN`(장기 토큰), `SECRETS_PAT`(토큰 갱신용, 이 저장소 Secrets 읽기·쓰기 권한 fine-grained 토큰).
-- GitHub 저장소 변수: `POST_MODE`(`live`일 때만 실제 게시. 없거나 다른 값이면 시험), `IMAGE_BASE_URL`(선택, 이미지 주소 앞부분을 바꿀 때).
+- GitHub 저장소: https://github.com/woovx/woo-news (공개, main 브랜치). 로컬 커밋 작성자는 `woovx` / `345821180+woovx@users.noreply.github.com`.
+- GitHub 저장소 변수: `POST_MODE`(`live` = 실제 게시, `dry-run` = 시험, 없음 = 예약 게시 실행 안 함), `IMAGE_BASE_URL`(선택, 이미지 주소 앞부분을 바꿀 때).
 - 토큰·비밀번호는 사용자가 직접 발급하고 직접 GitHub에 넣는다. Claude는 값을 받거나 입력하지 않는다.
 - 로컬 PC 시험: `npm install` 후 PowerShell에서 `$env:PW_CHANNEL='chrome'; node scripts/render.mjs 2026-10-21`. (이 PC에서는 Playwright 내장 Chromium이 실행되지 않아 설치된 Chrome을 쓴다.)
 - 기존 08:45 4분야 예약 작업은 2026-10-21에 중지했다(삭제 안 함).
@@ -60,7 +61,7 @@
 ## 운영 방법
 - **게시 막기(건너뛰기)**: GitHub 웹·모바일 앱에서 `posts/오늘날짜/skip` 파일을 만든다(내용은 이유 한 줄). 08:00 게시 전에만 효과가 있다. 생성 작업도 당일 기사가 부족하거나 휴장일이면 스스로 `skip`을 만든다.
 - **내용 고치기**: 08:00 전에 `post.json`을 GitHub에서 고쳐 커밋하면 카드가 다시 렌더링된다.
-- **시험 / 실제 전환**: 저장소 Settings → Secrets and variables → Actions → Variables에서 `POST_MODE`를 `live`로 두면 실제 게시, 지우거나 `dry-run`이면 시험(토큰이 어느 계정인지와 이미지 주소만 확인). 첫 실제 게시는 사용자가 결과물을 보고 승인한 뒤에만 `live`로 바꾼다.
+- **시험 / 실제 전환**: 저장소 Settings → Secrets and variables → Actions → Variables에서 `POST_MODE`를 `live`로 두면 실제 게시, `dry-run`이면 시험(토큰이 어느 계정인지와 이미지 주소만 확인), 변수를 지우면 예약 게시가 아예 돌지 않는다(일시 중지). 첫 실제 게시는 사용자가 결과물을 보고 승인한 뒤에만 `live`로 바꾼다.
 - **손으로 다시 게시**: Actions → "게시" → Run workflow(날짜, mode). 이미 올라간 플랫폼은 `published.json`을 보고 건너뛰므로 두 번 올라가지 않는다.
 - **실패하면**: GitHub가 계정 메일로 실패 알림을 보낸다. Actions 로그에서 원인을 본다.
   - "post.json 없음": 07시 생성 작업 실패 → claude.ai/code 예약 작업 실행 기록 확인. 급하면 그날은 건너뛴다.
