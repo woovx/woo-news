@@ -84,7 +84,9 @@ const platformsApi = {
 // ---- 게시 전 확인 ----
 if (existsSync(path.join(dir, 'skip'))) {
   console.log(`[${date}] skip 파일이 있어 게시하지 않음: ${readFileSync(path.join(dir, 'skip'), 'utf8').trim()}`);
-  process.exit(0);
+  // 시험 모드에서는 skip 날짜로도 토큰·이미지 주소 확인은 해 본다.
+  if (live) process.exit(0);
+  console.log('[시험] 토큰과 이미지 주소 확인은 계속 진행');
 }
 if (!existsSync(path.join(dir, 'post.json'))) fail('post.json 없음 (07시 생성 작업이 안 돌았거나 실패)');
 if (!existsSync(path.join(dir, 'card.jpg'))) fail('card.jpg 없음 (렌더링 워크플로 실패)');
