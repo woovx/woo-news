@@ -1,17 +1,24 @@
 # 매주 월요일 03:00(KST)에 쓰레드·인스타 장기 토큰을 갱신해 GitHub Secrets를 덮어쓴다.
 # 저장소 Secret SECRETS_PAT(이 저장소 Secrets 읽기·쓰기 권한의 fine-grained 토큰)이 필요하다.
+# 같은 때 SECRETS_PAT 만료일도 확인해, 30일 이하로 남으면 실패시켜 메일로 알린다.
 name: 토큰 갱신
 
 on:
   schedule:
     - cron: '0 18 * * 0'   # UTC 일 18:00 = KST 월 03:00
   workflow_dispatch:
+    inputs:
+      only_check_pat:
+        description: 'SECRETS_PAT 만료일만 확인 (토큰 갱신은 하지 않음)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   refresh:
+    if: ${{ !inputs.only_check_pat }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,3 +41,30 @@ jobs:
             gh secret set "$name" --repo "$GITHUB_REPOSITORY" < "$RUNNER_TEMP/tokens/$name"
           done
           rm -rf "$RUNNER_TEMP/tokens"
+
+  pat-expiry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SECRETS_PAT 만료일 확인
+        env:
+          GH_TOKEN: ${{ secrets.SECRETS_PAT }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "SECRETS_PAT 이 등록돼 있지 않음" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1
+          fi
+          headers=$(curl -s -o /dev/null -D - -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY")
+          status=$(echo "$headers" | head -1 | awk '{print $2}')
+          if [ "$status" != "200" ]; then
+            echo "SECRETS_PAT 이 동작하지 않음 (HTTP $status). 만료됐거나 권한이 바뀌었을 수 있음 → 새로 만들어 다시 등록" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1
+          fi
+          exp=$(echo "$headers" | grep -i '^github-authentication-token-expiration:' | cut -d' ' -f2- | tr -d '\r')
+          if [ -z "$exp" ]; then
+            echo "SECRETS_PAT: 만료일 없음" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          days=$(( ( $(date -d "$exp" +%s) - $(date +%s) ) / 86400 ))
+          echo "SECRETS_PAT 만료일: $exp (약 ${days}일 남음)" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$days" -le 30 ]; then
+            echo "만료 30일 이내 → GitHub에서 새 토큰을 만들어 SECRETS_PAT 을 다시 등록하세요 (CLAUDE.md 운영 방법 참고)" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

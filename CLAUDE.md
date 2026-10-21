@@ -71,7 +71,7 @@
   - 토큰 오류(190 등): 토큰 만료·폐기 → 새 장기 토큰을 발급해 Secrets에 다시 넣는다.
   - 이미지 주소 오류: 저장소가 공개인지, card.jpg가 main에 있는지 확인.
 - **Meta 앱**: 인스타용 앱과 쓰레드용 앱을 따로 만든다(개발 모드, 본인 계정을 테스터로). 인스타 토큰은 앱 대시보드 "API setup with Instagram login" → Generate token(60일). 쓰레드 토큰은 Threads 사용 사례 설정 맨 아래 액세스 토큰 생성(2026-10-21 확인: 대시보드에서 만든 토큰이 이미 60일짜리였다) → 혹시 1시간짜리면 `scripts/exchange-threads-token.ps1`(사용자가 직접 실행, 결과는 클립보드로만)로 60일 토큰으로 바꾼다.
-- **토큰 갱신**: 매주 자동. 갱신이 실패하면 메일이 온다. 60일 안에 고치지 않으면 토큰이 만료된다. `SECRETS_PAT`도 만료일이 있으니(최대 1년) 만료 전에 새로 만들어 넣는다.
+- **토큰 갱신**: 매주 자동. 갱신이 실패하면 메일이 온다. 60일 안에 고치지 않으면 토큰이 만료된다. `SECRETS_PAT`도 만료일이 있다(사용자가 2026-10-21에 1년 안팎으로 만듦). "토큰 갱신" 워크플로가 매주 만료일을 확인해 실행 요약에 적고, **30일 이하로 남으면 실패시켜 메일로 알린다**(사용자 요청: 만료일은 자동으로 알려 달라). 바로 확인하려면 Actions → "토큰 갱신" → Run workflow에서 "SECRETS_PAT 만료일만 확인"을 체크. 갱신 방법: GitHub Settings → Developer settings → Fine-grained tokens에서 같은 설정(woo-news만, Repository 권한 Secrets: Read and write)으로 새로 만들어 같은 이름 `SECRETS_PAT`으로 덮어쓴다.
 
 ## 로고
 - `logo/` 폴더: woo-news-profile.png(프로필용 1024², 네이비 배경+앰버 원+W), woo-news-icon.png(투명), woo-news-logo.png(가로형 투명, 네이비 글자), woo-news-logo-on-dark.png, SVG 2종(글자는 도형 변환됨). 브랜드 색은 네이비 `#0B1220` + 앰버 `#FFC53D`.
