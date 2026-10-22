@@ -39,7 +39,7 @@
 - 쓰레드: **500자 이내**, 헤드라인 중심으로 짧게, **해시태그 없이**, 책임 문구는 한 줄.
 - 예시는 `docs/captions-2026-10-21.md`의 "주식/코인" 부분.
 
-## 자동화 구조 (2026-10-21 확정, 구축 중)
+## 자동화 구조 (2026-10-21 확정, 2026-10-22 첫 자동 게시 성공·운영 중)
 공개 GitHub 저장소 + Claude 클라우드 예약 작업 + GitHub Actions. 컴퓨터가 꺼져 있어도 돈다.
 
 | 시각(KST) | 무엇이 | 하는 일 |
@@ -50,6 +50,7 @@
 | 월~토 07:55 무렵 | Actions "게시" (`.github/workflows/publish.yml`, cron `55 22 * * 0-5` UTC) | `scripts/publish.mjs`가 card.jpg를 공개 주소(raw.githubusercontent.com)로 넘겨 쓰레드·인스타에 컨테이너 생성 → 게시. card.jpg가 아직 없으면 최대 40분 기다린다. 결과는 `published.json`에 커밋 |
 | 매주 월 03:00 | Actions "토큰 갱신" (`.github/workflows/refresh-tokens.yml`) | `scripts/refresh-tokens.mjs`로 두 장기 토큰을 갱신하고 Secrets를 덮어쓴다 |
 
+- 2026-10-22 첫 실행 기록: 생성 커밋 07:11 → 렌더링 07:11 → 점검·복구 07:35(정상, 변경 없음) → 게시 08:13(쓰레드·인스타 모두 @woo._.news) → 예비 게시 08:59·10:13(이미 게시돼 건너뜀). GitHub 예약 실행은 cron보다 10~20분 늦게 시작될 수 있다(07:55 예약 → 08:13 실행).
 - 폴더 구조: `posts/YYYY-MM-DD/` 안에 `post.json`, `card.html`, `card.jpg`, (있으면) `skip`, `published.json`.
 - 글꼴: `fonts/NotoSansKR-wght.ttf`(Google Fonts, OFL)를 저장소에 넣어 매번 같은 모양으로 렌더링한다.
 - GitHub Secrets: `THREADS_TOKEN`, `IG_TOKEN`(장기 토큰), `SECRETS_PAT`(토큰 갱신용, 이 저장소 Secrets 읽기·쓰기 권한 fine-grained 토큰).
