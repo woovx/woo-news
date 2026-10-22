@@ -130,6 +130,16 @@ if (existsSync(daySkip)) {
 
 const base = process.env.IMAGE_BASE_URL || `https://raw.githubusercontent.com/${process.env.GITHUB_REPOSITORY}/main`;
 
+// 중복 게시 확인. 이 확인 자체가 실패해도 게시는 막지 않는다(경고만 남김).
+async function safeFind(api, token, text, label) {
+  try {
+    return await api.findPosted(token, text);
+  } catch (e) {
+    report(`${label}: 중복 게시 확인 실패(게시는 계속) - ${e.message}`);
+    return undefined;
+  }
+}
+
 // 한 분야를 두 플랫폼에 올린다. 새로 올린 게 있으면 true.
 async function publishField(field) {
   const name = `${date}/${field}`;
@@ -171,7 +181,7 @@ async function publishField(field) {
         continue;
       }
       // 기록이 없어도 이미 올라가 있으면(이전 실행이 게시 후 기록 전에 끊긴 경우) 다시 올리지 않는다.
-      let id = await api.findPosted(token, texts[p]);
+      let id = await safeFind(api, token, texts[p], `[${name}] ${p}`);
       if (!live) {
         report(`[${name}] ${p}: [시험] @${user} 계정 토큰 확인${id ? ', 오늘 같은 글이 이미 있음' : ''}. 실제 게시는 하지 않음`);
         continue;
@@ -185,7 +195,7 @@ async function publishField(field) {
         } catch (e) {
           report(`[${name}] ${p}: 첫 시도 실패, 1분 뒤 다시 시도 - ${e.message}`);
           await sleep(60000);
-          id = (await api.findPosted(token, texts[p])) || (await api.post(token, imageUrl, texts[p]));
+          id = (await safeFind(api, token, texts[p], `[${name}] ${p}`)) || (await api.post(token, imageUrl, texts[p]));
         }
         posted = true;
         report(`[${name}] ${p}: @${user} 게시 완료 (${id})`);
