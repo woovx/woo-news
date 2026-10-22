@@ -1,4 +1,4 @@
-# 매주 월~토 08:00(KST) 무렵 오늘 카드를 쓰레드·인스타그램에 올린다.
+# 매주 월~토 08:00(KST) 무렵부터 오늘 카드 3장(주식/코인 → 연예 → 보험)을 10분 간격으로 쓰레드·인스타그램에 올린다.
 # 저장소 변수 POST_MODE: live = 실제 게시, dry-run = 시험(토큰·이미지 주소 확인), 없음 = 예약 실행 안 함.
 name: 게시
 
@@ -30,7 +30,7 @@ jobs:
     # 설정을 마치기 전(POST_MODE 없음)에는 예약 실행이 실패 메일을 보내지 않도록 건너뛴다.
     if: github.event_name == 'workflow_dispatch' || vars.POST_MODE == 'live' || vars.POST_MODE == 'dry-run'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 100
     env:
       POST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || vars.POST_MODE }}
       POST_DATE: ${{ inputs.date }}
@@ -43,32 +43,47 @@ jobs:
       - name: 날짜 정하기
         run: echo "POST_DATE=${POST_DATE:-$(TZ=Asia/Seoul date +%F)}" >> "$GITHUB_ENV"
 
-      # 생성·렌더링이 늦어질 때를 대비해 card.jpg(또는 skip)가 생길 때까지 최대 40분 기다린다.
-      # post.json은 있는데 렌더링 워크플로가 5분 넘게 card.jpg를 만들지 않으면 여기서 직접 만든다.
+      # 생성·렌더링이 늦어질 때를 대비해 분야마다 card.jpg(또는 skip)가 생길 때까지 최대 40분 기다린다.
+      # post.json은 있는데 5분 넘게 card.jpg가 없으면(렌더링 워크플로가 안 돌았을 때) 여기서 직접 만든다.
       - name: 카드 기다리기
         id: wait
         run: |
+          fields="stock entertainment insurance"
           seen=0
           for i in $(seq 1 40); do
             git pull --quiet --rebase
-            if [ -f "posts/$POST_DATE/skip" ] || [ -f "posts/$POST_DATE/card.jpg" ]; then exit 0; fi
-            if [ -f "posts/$POST_DATE/post.json" ]; then
+            [ -f "posts/$POST_DATE/skip" ] && exit 0
+            missing=""; pending=0
+            for f in $fields; do
+              d="posts/$POST_DATE/$f"
+              [ -f "$d/skip" ] || [ -f "$d/card.jpg" ] && continue
+              missing="$missing $f"
+              [ -f "$d/post.json" ] && pending=$((pending + 1))
+            done
+            [ -z "$missing" ] && exit 0
+            if [ "$pending" -gt 0 ]; then
               seen=$((seen + 1))
               if [ "$seen" -gt 5 ]; then echo "render=1" >> "$GITHUB_OUTPUT"; exit 0; fi
             fi
-            echo "아직 카드 없음 ($i/40)"; sleep 60
+            echo "아직 카드 없음:$missing ($i/40)"; sleep 60
           done
-          echo "posts/$POST_DATE/card.jpg 가 40분 안에 생기지 않음"
+          echo "40분 안에 카드가 다 생기지 않음:$missing (있는 분야만 올림)"
 
       - name: 직접 렌더링 (렌더링 워크플로가 안 돌았을 때)
         if: steps.wait.outputs.render == '1'
         run: |
           npm ci
           npx playwright install --with-deps chromium
-          node scripts/render.mjs "$POST_DATE"
+          todo=""
+          for f in stock entertainment insurance; do
+            d="posts/$POST_DATE/$f"
+            [ -f "$d/post.json" ] && [ ! -f "$d/card.jpg" ] && todo="$todo $POST_DATE/$f"
+          done
+          node scripts/render.mjs $todo || true
           git config user.name "woo-news-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "posts/$POST_DATE/card.html" "posts/$POST_DATE/card.jpg"
+          git add posts/$POST_DATE/*/card.html posts/$POST_DATE/*/card.jpg 2>/dev/null || true
+          git diff --cached --quiet && exit 0
           git commit -m "카드 렌더링(게시 단계): $POST_DATE"
           for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done
           exit 1
@@ -83,11 +98,10 @@ jobs:
       - name: 게시 기록 커밋
         if: always()
         run: |
-          f="posts/$POST_DATE/published.json"
-          [ -f "$f" ] || exit 0
+          ls posts/$POST_DATE/*/published.json >/dev/null 2>&1 || exit 0
           git config user.name "woo-news-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$f"
+          git add posts/$POST_DATE/*/published.json
           git diff --cached --quiet && exit 0
           git commit -m "게시 기록: $POST_DATE"
           for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done

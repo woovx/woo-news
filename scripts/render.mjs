@@ -1,11 +1,11 @@
 // post.json → card.html + card.jpg(1080×1350). 글이 넘치면 실패한다.
-// 사용: node scripts/render.mjs [YYYY-MM-DD ...]   (날짜를 빼면 오늘 한국 날짜)
+// 사용: node scripts/render.mjs [YYYY-MM-DD | YYYY-MM-DD/분야 ...]   (빼면 오늘 한국 날짜의 모든 분야)
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { cardHtml } from './card-template.mjs';
-import { loadPost, postDir, todayKst, validatePost } from './validate.mjs';
+import { expandTargets, loadPost, postDir, validatePost } from './validate.mjs';
 
 // 각 글 요소가 data-lines 줄 수 안에 들어가는지, 목록 영역이 넘치지 않는지 본다.
 function checkLayout() {
@@ -27,38 +27,42 @@ function checkLayout() {
   return problems;
 }
 
-async function render(browser, date) {
-  const post = loadPost(date);
-  const errors = validatePost(post, date);
-  if (errors.length) throw new Error(`[${date}] post.json 검사 실패:\n- ${errors.join('\n- ')}`);
+async function render(browser, date, field) {
+  const name = `${date}/${field}`;
+  const post = loadPost(date, field);
+  const errors = validatePost(post, date, field);
+  if (errors.length) throw new Error(`[${name}] post.json 검사 실패:\n- ${errors.join('\n- ')}`);
 
-  const dir = postDir(date);
+  const dir = postDir(date, field);
   const htmlPath = path.join(dir, 'card.html');
-  writeFileSync(htmlPath, cardHtml(post));
+  writeFileSync(htmlPath, cardHtml(field, post));
 
   const page = await browser.newPage({ viewport: { width: 1080, height: 1350 }, deviceScaleFactor: 1 });
   await page.goto(pathToFileURL(htmlPath).href);
   await page.evaluate(() => document.fonts.ready);
   const fontOk = await page.evaluate(() => document.fonts.check('900 48px "Noto Sans KR"', '가'));
-  if (!fontOk) throw new Error(`[${date}] Noto Sans KR 글꼴을 불러오지 못함`);
+  if (!fontOk) throw new Error(`[${name}] Noto Sans KR 글꼴을 불러오지 못함`);
 
   const problems = await page.evaluate(checkLayout);
-  if (problems.length) throw new Error(`[${date}] 글이 넘침:\n- ${problems.join('\n- ')}`);
+  if (problems.length) throw new Error(`[${name}] 글이 넘침:\n- ${problems.join('\n- ')}`);
 
   await page.locator('#card').screenshot({ path: path.join(dir, 'card.jpg'), type: 'jpeg', quality: 92 });
   await page.close();
-  console.log(`[${date}] card.jpg 생성`);
+  console.log(`[${name}] card.jpg 생성`);
 }
 
-const dates = process.argv.slice(2);
-if (!dates.length) dates.push(todayKst());
+const targets = expandTargets(process.argv.slice(2));
+if (!targets.length) {
+  console.error('렌더링할 post.json 이 없음');
+  process.exit(1);
+}
 
 // PW_CHANNEL=chrome 이면 설치된 Chrome을 쓴다(로컬 PC 시험용). Actions에서는 내장 Chromium.
 const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
 let failed = false;
-for (const date of dates) {
+for (const { date, field } of targets) {
   try {
-    await render(browser, date);
+    await render(browser, date, field);
   } catch (e) {
     failed = true;
     console.error(e.message);
