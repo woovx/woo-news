@@ -64,6 +64,7 @@
 | 월~토 07:55 무렵 | Actions "게시" (`.github/workflows/publish.yml`, cron `55 22 * * 0-5` UTC) | `scripts/publish.mjs`가 분야 순서(주식/코인 → 연예 → 보험)대로 10분 간격으로 card.jpg를 공개 주소(raw.githubusercontent.com)로 넘겨 쓰레드·인스타에 컨테이너 생성 → 게시. card.jpg가 아직 없으면 최대 40분 기다린다. 결과는 분야 폴더의 `published.json`에 커밋 |
 | 매주 월 03:00 | Actions "토큰 갱신" (`.github/workflows/refresh-tokens.yml`) | `scripts/refresh-tokens.mjs`로 두 장기 토큰을 갱신하고 Secrets를 덮어쓴다 |
 
+- 2026-10-23: 클라우드 환경(Default) 네트워크가 제한돼 WebFetch가 뉴스 사이트를 못 열었고(ENOTFOUND), 연예·보험이 `[자동]` skip됐다. 사용자가 환경 네트워크 접근을 "전체"로 바꿨다. 다시 생기면 claude.ai/code 환경 설정(입력창 아래 "환경 선택" → Default → 톱니바퀴 → 네트워크 접근)을 확인한다.
 - 2026-10-22 첫 실행 기록: 생성 커밋 07:11 → 렌더링 07:11 → 점검·복구 07:35(정상, 변경 없음) → 게시 08:13(쓰레드·인스타 모두 @woo._.news) → 예비 게시 08:59·10:13(이미 게시돼 건너뜀). GitHub 예약 실행은 cron보다 10~20분 늦게 시작될 수 있다(07:55 예약 → 08:13 실행).
 - 폴더 구조 (2026-10-22부터): `posts/YYYY-MM-DD/<분야>/` 안에 `post.json`, `card.html`, `card.jpg`, (있으면) `skip`, `published.json`. 분야 폴더는 `stock`, `entertainment`, `insurance`. 날짜 전체를 막는 `posts/YYYY-MM-DD/skip`도 있다. 10/21·10/22 기록도 이 구조로 옮겼다(10/21 연예·보험은 렌더링 시험용 샘플).
 - 글꼴: `fonts/NotoSansKR-wght.ttf`(Google Fonts, OFL)를 저장소에 넣어 매번 같은 모양으로 렌더링한다.
