@@ -111,6 +111,7 @@
 - 사용자는 한 번 확정한 디자인 폼을 유지하길 원한다. 새 요청이 없으면 폼을 바꾸지 않는다.
 - 사실 확인이 약하면 카드에 넣지 말고 보고한다. 오래된 소식으로 채우지 않는다.
 - 2026-10-21 사용자 결정: 게시 전 승인 절차 없이 자동 게시한다. 검수는 사용자가 게시 후 직접 한다. 문제가 있는 날은 `skip`으로 막거나 사용자가 게시물을 직접 내린다.
+- 2026-10-26 사용자 요청: 클라우드 세션용 토큰 절약 도구 3개를 저장소에 등록했다. `.claude/settings.json`에서 caveman(`JuliusBrussee/caveman`, 답변을 짧게)·ponytail(`DietrichGebert/ponytail`, 코드를 적게)을 플러그인으로 켜고, graphify(`safishamsi/graphify`, 코드 그래프)는 `.claude/skills/graphify/`에 스킬로 넣었다. graphify 프로그램은 클라우드 세션 시작 훅이 `uv tool install graphifyy`로 깐다. 그래프는 `/graphify .`를 실행해야 생기고, 그 전에는 graphify 훅이 아무것도 하지 않는다. 예약 작업 문서(`docs/daily-task-prompt.md`, `docs/repair-task-prompt.md`)에는 카드 글·본문에 caveman 말투를 쓰지 말라는 예외를 넣었다. 끄려면 `enabledPlugins`의 값을 `false`로 바꾸면 된다. 대화 중에는 "stop caveman"이나 "normal mode"라고 말하면 caveman이 꺼진다.
 
 ## 중단된 분야 기록
 2026-10-21까지는 4분야(주식/코인·연예·스포츠·보험)를 카드 1장씩, 분야별로 따로 게시했다. 10/21에 주식/코인만 남겼다가 10/22에 연예·보험을 다시 살렸다. 스포츠는 계속 중단. 다시 살릴 때 참고한다.
@@ -118,3 +119,14 @@
 - 스포츠: 한국시간 새벽~아침에 끝난 경기와 당일 공식 발표 소식. 색: 배경 `#0A2E22`, 라임 `#C8F135`, 초록 원 `rgba(31,169,113,.28)`, 본문 `#F1FBE8`, 보조 `#B7D3C0`.
 - 기존 예약 작업 "WOO News 데일리 카드뉴스": 매일 08:45(KST) 클라우드에서 4개 아트보드 디자인 캔버스("WOO News 카드뉴스 M월 D일")를 만들고 푸시 알림. 프롬프트 전문은 `docs/retired-4fields-task-prompt.md`. 첫 캔버스: https://claude.ai/artifact/QuXmDndNzAf176fM5sw5zw (비공개). **2026-10-21 사용자 결정으로 중지(꺼 둠, 삭제 안 함).** 트리거 ID `trig_01LgHp2KGx5x2gzYYKnSupUu`.
 - 이전 보류 사항(인스타·쓰레드 본문 초안 예약 작업, 보험 폼 재사용 수정)은 분야 개편으로 의미가 없어졌다.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

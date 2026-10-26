@@ -6,6 +6,8 @@
 
 WOO News 카드뉴스 3장(주식/코인·연예·보험)의 내용을 만든다. 분야마다 카드 1장, 게시물도 따로 올라간다. 이 저장소의 `CLAUDE.md` 규칙을 먼저 읽고 따른다. 한국어로 쓴다.
 
+> **문체 플러그인 예외 (2026-10-26):** 이 저장소에는 caveman(짧은 말투)·ponytail(코드 최소화) 플러그인이 켜져 있다. `post.json`의 카드 글·쓰레드·인스타 본문, `skip` 사유, 커밋 메시지에는 이 플러그인들의 말투 규칙을 적용하지 않는다. 이 문서와 `CLAUDE.md`의 규칙대로 온전한 한국어 문장으로 쓴다.
+
 ## 1. 날짜 확인
 `TZ=Asia/Seoul date +%F`로 한국 날짜를 확인한다. 이하 DATE = YYYY-MM-DD.
 분야 폴더는 `posts/DATE/stock/`(주식/코인), `posts/DATE/entertainment/`(연예), `posts/DATE/insurance/`(보험).

@@ -2,6 +2,8 @@
 
 (클라우드 예약 작업 "WOO News 점검·복구"의 절차. 07:00 생성이 실패했거나 카드가 안 만들어졌을 때 08:00 게시 전에 고친다. 2026-10-22부터 3분야: stock(주식/코인), entertainment(연예), insurance(보험). 규칙은 `CLAUDE.md`와 `docs/daily-task-prompt.md`를 따른다.)
 
+> **문체 플러그인 예외 (2026-10-26):** 이 저장소에는 caveman(짧은 말투)·ponytail(코드 최소화) 플러그인이 켜져 있다. `post.json`의 카드 글·쓰레드·인스타 본문, `skip` 사유, 커밋 메시지에는 이 플러그인들의 말투 규칙을 적용하지 않는다. 이 문서와 `CLAUDE.md`의 규칙대로 온전한 한국어 문장으로 쓴다.
+
 ---
 
 1. `TZ=Asia/Seoul date +%F`로 오늘 한국 날짜 DATE를 확인하고 `git checkout main && git pull --rebase` 한다.
