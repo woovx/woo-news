@@ -4,8 +4,9 @@
 name: 토큰 갱신
 
 on:
-  schedule:
-    - cron: '0 18 * * 0'   # UTC 일 18:00 = KST 월 03:00
+  # 2026-10-28 카드뉴스 운영 중단으로 예약 실행을 껐다. 다시 켜려면 아래 주석을 푼다.
+  # schedule:
+  #   - cron: '0 18 * * 0'   # UTC 일 18:00 = KST 월 03:00
   workflow_dispatch:
     inputs:
       only_check_pat:
